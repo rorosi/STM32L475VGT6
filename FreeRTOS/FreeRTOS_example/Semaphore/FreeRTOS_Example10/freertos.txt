@@ -1,0 +1,75 @@
+/* Includes ------------------------------------------------------------------*/
+#include "FreeRTOS.h"
+#include "task.h"
+#include "main.h"
+#include "cmsis_os.h"
+#include "printf.h"
+
+/* Private function prototypes -----------------------------------------------*/
+static void vHandlerTask( void *pvParameters);
+
+SemaphoreHandle_t xCountingSemaphore;
+
+void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
+
+/* GetIdleTaskMemory prototype (linked to static allocation support) */
+void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize );
+
+/* USER CODE BEGIN GET_IDLE_TASK_MEMORY */
+static StaticTask_t xIdleTaskTCBBuffer;
+static StackType_t xIdleStack[configMINIMAL_STACK_SIZE];
+
+void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize )
+{
+  *ppxIdleTaskTCBBuffer = &xIdleTaskTCBBuffer;
+  *ppxIdleTaskStackBuffer = &xIdleStack[0];
+  *pulIdleTaskStackSize = configMINIMAL_STACK_SIZE;
+  /* place for user code */
+}
+/* USER CODE END GET_IDLE_TASK_MEMORY */
+
+/**
+  * @brief  FreeRTOS initialization
+  * @param  None
+  * @retval None
+  */
+void MX_FREERTOS_Init(void)
+{
+
+  /* Create binary semaphore */
+	xCountingSemaphore = xSemaphoreCreateCounting(10, 0);
+
+  /* Check the semaphore was created successfully. */
+  if( xCountingSemaphore != NULL )
+  {
+	  xTaskCreate(vHandlerTask, "Handler", configMINIMAL_STACK_SIZE, NULL, 3, NULL);
+  }
+}
+
+static void vHandlerTask( void *pvParameters)
+{
+	uint32_t count=0;
+
+	for( ;; )
+	{
+		xSemaphoreTake( xCountingSemaphore, portMAX_DELAY );
+
+		count++;
+		printf( "Handler task = Processing event: %d\r\n", count);
+	}
+}
+
+/* interrupt callback functions */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+	BaseType_t xHigherPriorityTaskWoken;
+
+	xHigherPriorityTaskWoken = pdFALSE;
+
+	/* 'Give' the semaphore to unblock the task. */
+	xSemaphoreGiveFromISR(xCountingSemaphore, &xHigherPriorityTaskWoken);
+	xSemaphoreGiveFromISR(xCountingSemaphore, &xHigherPriorityTaskWoken);
+	xSemaphoreGiveFromISR(xCountingSemaphore, &xHigherPriorityTaskWoken);
+
+	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+}

@@ -1,0 +1,5 @@
+example.c:27:6:User_LED	16	static
+example.c:33:5:__io_putchar	16	static
+example.c:42:5:__io_getchar	16	static
+example.c:52:7:Temperature_Test	16	static
+example.c:62:7:Humidity_Test	16	static

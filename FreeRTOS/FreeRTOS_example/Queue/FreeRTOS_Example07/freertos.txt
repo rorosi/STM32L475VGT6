@@ -1,0 +1,104 @@
+/* Includes ------------------------------------------------------------------*/
+#include "FreeRTOS.h"
+#include "task.h"
+#include "main.h"
+#include "cmsis_os.h"
+#include "printf.h"
+
+#define mainDELAY_LOOP_COUNT 	(0xffffff)
+/* Private function prototypes -----------------------------------------------*/
+static void vSenderTask( void *pvParameters );
+static void vReceiverTask( void *pvParameters );
+
+static QueueHandle_t xQueue = NULL;
+
+void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
+
+/* GetIdleTaskMemory prototype (linked to static allocation support) */
+void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize );
+
+/* USER CODE BEGIN GET_IDLE_TASK_MEMORY */
+static StaticTask_t xIdleTaskTCBBuffer;
+static StackType_t xIdleStack[configMINIMAL_STACK_SIZE];
+
+void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize )
+{
+  *ppxIdleTaskTCBBuffer = &xIdleTaskTCBBuffer;
+  *ppxIdleTaskStackBuffer = &xIdleStack[0];
+  *pulIdleTaskStackSize = configMINIMAL_STACK_SIZE;
+  /* place for user code */
+}
+/* USER CODE END GET_IDLE_TASK_MEMORY */
+
+/**
+  * @brief  FreeRTOS initialization
+  * @param  None
+  * @retval None
+  */
+void MX_FREERTOS_Init(void) {
+
+
+  /* Create Queue */
+  xQueue = xQueueCreate( 5, sizeof( int32_t ));
+
+  if(xQueue != NULL)
+  {
+	  /* Create the thread(s) */
+	  xTaskCreate(vSenderTask, "Sender 1", 128, (void*)100, 1, NULL);
+	  xTaskCreate(vSenderTask, "Sender 2", 128, (void*)200, 1, NULL);
+
+	  xTaskCreate(vReceiverTask, "Receiver 1", 128, NULL, 2, NULL);
+  }
+  else
+  {
+	  printf("Create Queue failed\r\n");
+  }
+}
+
+static void vSenderTask( void *pvParameters )
+{
+	int32_t lValueToSend;
+	BaseType_t xStatus;
+
+	lValueToSend = ( int32_t ) pvParameters;
+
+	for(;;)
+	{
+		/*
+		 * The second parameter is the address of the data to be send.
+		 * the third parameter is the Block time.
+		 */
+		xStatus = xQueueSendToBack(xQueue, &lValueToSend, 0);
+
+		if(xStatus != pdPASS)
+		{
+			printf("Could not send to the queue. \r\n");
+		}
+	}
+}
+
+static void vReceiverTask( void *pvParameters )
+{
+	int32_t lReceivedValue;
+	BaseType_t xStatus;
+	const TickType_t xTicksToWait = pdMS_TO_TICKS( 100UL );
+
+	for(;;)
+	{
+		if( uxQueueMessagesWaiting(xQueue) != 0)
+		{
+			printf("Queue shold have been empty!\r\n");
+		}
+
+		xStatus = xQueueReceive(xQueue, &lReceivedValue, xTicksToWait);
+
+		if( xStatus == pdPASS)
+		{
+			printf( "Received = %d\r\n", lReceivedValue);
+		}
+		else
+		{
+			printf( "Could not receive drom the quque.\r\n");
+		}
+	}
+}
