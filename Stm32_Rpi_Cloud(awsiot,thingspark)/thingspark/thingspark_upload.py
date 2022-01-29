@@ -8,7 +8,7 @@ url = "https://api.thingspark.co.kr/channels/entrys"
 
 r = ser.readline()
 params = {
-      "apiKey" : "jzf4yzysHC95K2Y0",
+      "apiKey" : "apiKey",
       "field1" : r,
       "field2" : 10
      }       
