@@ -8,7 +8,7 @@ ser.reset_input_buffer()
 client_id = 'stm_rpi_test'
 
 mqtt_client = AWSIoTMQTTClient(client_id)
-mqtt_client.configureEndpoint("a3ren02rfin8mw-ats.iot.us-east-1.amazonaws.com",8883)
+mqtt_client.configureEndpoint("endpoint",8883)
 mqtt_client.configureCredentials("/home/pi/certs/root-CA.crt", "/home/pi/certs/stm_rpi_test.private.key", "/home/pi/certs/stm_rpi_test.cert.pem")
 mqtt_client.configureOfflinePublishQueueing(-1)
 # mqtt_client.configureDrainingFrequency(2)
